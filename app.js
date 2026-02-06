@@ -6,7 +6,6 @@ class PickleballRoundRobin {
         this.teams = [];
         this.numCourts = 2;
         this.schedule = [];
-        this.manualRounds = [];
         this.scoringEnabled = false;
 
         this.init();
@@ -23,13 +22,6 @@ class PickleballRoundRobin {
         this.quickAddBtn = document.getElementById('quickAddBtn');
         this.generateBtn = document.getElementById('generateBtn');
 
-        // DOM elements - Manual Setup
-        this.manualSetupSection = document.getElementById('manualSetupSection');
-        this.manualRoundsContainer = document.getElementById('manualRoundsContainer');
-        this.addManualRoundBtn = document.getElementById('addManualRoundBtn');
-        this.completeScheduleBtn = document.getElementById('completeScheduleBtn');
-        this.skipManualBtn = document.getElementById('skipManualBtn');
-
         // DOM elements - Schedule
         this.scheduleSection = document.getElementById('scheduleSection');
         this.scheduleOutput = document.getElementById('scheduleOutput');
@@ -45,12 +37,7 @@ class PickleballRoundRobin {
         // Event listeners - Setup
         this.addTeamBtn.addEventListener('click', () => this.addTeam());
         this.quickAddBtn.addEventListener('click', () => this.quickAddTeams());
-        this.generateBtn.addEventListener('click', () => this.showManualSetup());
-
-        // Event listeners - Manual Setup
-        this.addManualRoundBtn.addEventListener('click', () => this.addManualRound());
-        this.completeScheduleBtn.addEventListener('click', () => this.generateSchedule());
-        this.skipManualBtn.addEventListener('click', () => this.generateSchedule(true));
+        this.generateBtn.addEventListener('click', () => this.generateSchedule());
 
         // Event listeners - Schedule
         this.printBtn.addEventListener('click', () => window.print());
@@ -145,129 +132,21 @@ class PickleballRoundRobin {
         `).join('');
     }
 
-    // ==================== MANUAL SETUP ====================
-
-    showManualSetup() {
-        if (this.teams.length < 2) {
-            alert('Please add at least 2 teams');
-            return;
-        }
-
-        this.numCourts = parseInt(this.numCourtsInput.value) || 2;
-        this.scoringEnabled = this.enableScoringCheckbox.checked;
-        this.manualRounds = [];
-        this.renderManualRounds();
-        this.manualSetupSection.classList.remove('hidden');
-        this.manualSetupSection.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    addManualRound() {
-        const roundNum = this.manualRounds.length + 1;
-        this.manualRounds.push({
-            roundNumber: roundNum,
-            matches: []
-        });
-        this.renderManualRounds();
-    }
-
-    removeManualRound(roundIndex) {
-        this.manualRounds.splice(roundIndex, 1);
-        this.manualRounds.forEach((round, i) => {
-            round.roundNumber = i + 1;
-        });
-        this.renderManualRounds();
-    }
-
-    addManualMatch(roundIndex) {
-        this.manualRounds[roundIndex].matches.push({
-            team1Id: null,
-            team2Id: null
-        });
-        this.renderManualRounds();
-    }
-
-    removeManualMatch(roundIndex, matchIndex) {
-        this.manualRounds[roundIndex].matches.splice(matchIndex, 1);
-        this.renderManualRounds();
-    }
-
-    updateManualMatch(roundIndex, matchIndex, side, teamId) {
-        const match = this.manualRounds[roundIndex].matches[matchIndex];
-        if (side === 'team1') {
-            match.team1Id = teamId ? parseInt(teamId) : null;
-        } else {
-            match.team2Id = teamId ? parseInt(teamId) : null;
-        }
-    }
-
-    renderManualRounds() {
-        if (this.manualRounds.length === 0) {
-            this.manualRoundsContainer.innerHTML = `
-                <p style="color: #666; text-align: center; padding: 20px;">
-                    No manual rounds added yet. Click "Add Manual Round" to lock in specific matchups,<br>
-                    or click "Skip - Auto Generate All" to let the system create the entire schedule.
-                </p>
-            `;
-            return;
-        }
-
-        this.manualRoundsContainer.innerHTML = this.manualRounds.map((round, roundIndex) => `
-            <div class="manual-round ${round.matches.length > 0 ? 'has-matches' : ''}">
-                <div class="manual-round-header">
-                    <h3>Round ${round.roundNumber}</h3>
-                    <button class="remove-round-btn" onclick="app.removeManualRound(${roundIndex})">Remove Round</button>
-                </div>
-                <div class="manual-matches-list">
-                    ${round.matches.map((match, matchIndex) => this.renderManualMatchRow(roundIndex, matchIndex, match)).join('')}
-                </div>
-                <button class="add-match-btn" onclick="app.addManualMatch(${roundIndex})">+ Add Match</button>
-            </div>
-        `).join('');
-    }
-
-    renderManualMatchRow(roundIndex, matchIndex, match) {
-        const teamOptions = this.teams.map(team =>
-            `<option value="${team.id}">${team.name}</option>`
-        ).join('');
-
-        return `
-            <div class="manual-match">
-                <select onchange="app.updateManualMatch(${roundIndex}, ${matchIndex}, 'team1', this.value)">
-                    <option value="">Select Team 1</option>
-                    ${teamOptions}
-                </select>
-                <span class="vs">VS</span>
-                <select onchange="app.updateManualMatch(${roundIndex}, ${matchIndex}, 'team2', this.value)">
-                    <option value="">Select Team 2</option>
-                    ${teamOptions}
-                </select>
-                <button class="remove-match-btn" onclick="app.removeManualMatch(${roundIndex}, ${matchIndex})">&times;</button>
-            </div>
-        `;
-    }
-
     // ==================== SCHEDULE GENERATION ====================
 
-    generateSchedule(skipManual = false) {
+    generateSchedule() {
         this.numCourts = parseInt(this.numCourtsInput.value) || 2;
+        this.scoringEnabled = this.enableScoringCheckbox.checked;
 
         if (this.teams.length < 2) {
             alert('Please add at least 2 teams');
             return;
         }
 
-        const lockedMatchups = skipManual ? [] : this.getLockedMatchups();
-
-        const validationError = this.validateLockedMatchups(lockedMatchups);
-        if (validationError) {
-            alert(validationError);
-            return;
-        }
-
-        this.schedule = this.createScheduleWithLockedMatchups(lockedMatchups);
+        this.schedule = this.createScheduleWithLockedMatchups([]);
 
         if (!this.schedule) {
-            alert('Unable to generate a valid schedule with the given manual matchups. Please adjust your manual rounds.');
+            alert('Unable to generate a valid schedule.');
             return;
         }
 
@@ -283,7 +162,6 @@ class PickleballRoundRobin {
             this.standingsSection.classList.add('hidden');
         }
 
-        this.manualSetupSection.classList.add('hidden');
         this.scheduleSection.classList.remove('hidden');
         this.scheduleSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -346,30 +224,6 @@ class PickleballRoundRobin {
         if (this.scoringEnabled) {
             this.renderStandings();
         }
-    }
-
-    getLockedMatchups() {
-        const locked = [];
-
-        this.manualRounds.forEach(round => {
-            const roundMatchups = [];
-            round.matches.forEach(match => {
-                if (match.team1Id && match.team2Id && match.team1Id !== match.team2Id) {
-                    roundMatchups.push({
-                        team1Id: match.team1Id,
-                        team2Id: match.team2Id
-                    });
-                }
-            });
-            if (roundMatchups.length > 0) {
-                locked.push({
-                    roundNumber: round.roundNumber,
-                    matches: roundMatchups
-                });
-            }
-        });
-
-        return locked;
     }
 
     validateLockedMatchups(lockedMatchups) {
