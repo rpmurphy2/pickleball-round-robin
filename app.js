@@ -7,6 +7,7 @@ class PickleballRoundRobin {
         this.numCourts = 2;
         this.schedule = [];
         this.manualRounds = [];
+        this.scoringEnabled = false;
 
         this.init();
     }
@@ -33,9 +34,13 @@ class PickleballRoundRobin {
         this.scheduleSection = document.getElementById('scheduleSection');
         this.scheduleOutput = document.getElementById('scheduleOutput');
         this.summarySection = document.getElementById('summarySection');
+        this.standingsSection = document.getElementById('standingsSection');
         this.printBtn = document.getElementById('printBtn');
         this.resetBtn = document.getElementById('resetBtn');
         this.regenerateBtn = document.getElementById('regenerateBtn');
+
+        // DOM elements - Scoring
+        this.enableScoringCheckbox = document.getElementById('enableScoring');
 
         // Event listeners - Setup
         this.addTeamBtn.addEventListener('click', () => this.addTeam());
@@ -149,6 +154,7 @@ class PickleballRoundRobin {
         }
 
         this.numCourts = parseInt(this.numCourtsInput.value) || 2;
+        this.scoringEnabled = this.enableScoringCheckbox.checked;
         this.manualRounds = [];
         this.renderManualRounds();
         this.manualSetupSection.classList.remove('hidden');
@@ -266,8 +272,16 @@ class PickleballRoundRobin {
         }
 
         this.assignCourts();
+        this.initializeScores();
         this.renderSchedule();
         this.renderSummary();
+
+        if (this.scoringEnabled) {
+            this.standingsSection.classList.remove('hidden');
+            this.renderStandings();
+        } else {
+            this.standingsSection.classList.add('hidden');
+        }
 
         this.manualSetupSection.classList.add('hidden');
         this.scheduleSection.classList.remove('hidden');
@@ -325,8 +339,13 @@ class PickleballRoundRobin {
         }
 
         this.assignCourts();
+        this.initializeScores();
         this.renderSchedule();
         this.renderSummary();
+
+        if (this.scoringEnabled) {
+            this.renderStandings();
+        }
     }
 
     getLockedMatchups() {
@@ -784,6 +803,136 @@ class PickleballRoundRobin {
         this.updateRegenerateButton();
     }
 
+    // ==================== SCORING ====================
+
+    initializeScores() {
+        // Initialize score properties on each match if not already present
+        this.schedule.forEach(round => {
+            round.matches.forEach(match => {
+                if (match.score1 === undefined) match.score1 = null;
+                if (match.score2 === undefined) match.score2 = null;
+            });
+        });
+    }
+
+    updateScore(roundIndex, matchIndex, team, value) {
+        const match = this.schedule[roundIndex].matches[matchIndex];
+        const score = value === '' ? null : parseInt(value);
+
+        if (team === 1) {
+            match.score1 = score;
+        } else {
+            match.score2 = score;
+        }
+
+        this.renderStandings();
+    }
+
+    calculateStandings() {
+        // Initialize standings for each team
+        const standings = {};
+        this.teams.forEach(team => {
+            standings[team.id] = {
+                team: team,
+                wins: 0,
+                losses: 0,
+                pointsFor: 0,
+                pointsAgainst: 0,
+                marginTotal: 0,
+                gamesPlayed: 0
+            };
+        });
+
+        // Calculate stats from all matches with scores
+        this.schedule.forEach(round => {
+            round.matches.forEach(match => {
+                if (match.score1 !== null && match.score2 !== null) {
+                    const team1Stats = standings[match.team1.id];
+                    const team2Stats = standings[match.team2.id];
+
+                    team1Stats.pointsFor += match.score1;
+                    team1Stats.pointsAgainst += match.score2;
+                    team1Stats.gamesPlayed++;
+
+                    team2Stats.pointsFor += match.score2;
+                    team2Stats.pointsAgainst += match.score1;
+                    team2Stats.gamesPlayed++;
+
+                    if (match.score1 > match.score2) {
+                        team1Stats.wins++;
+                        team2Stats.losses++;
+                        team1Stats.marginTotal += (match.score1 - match.score2);
+                        team2Stats.marginTotal += (match.score2 - match.score1);
+                    } else if (match.score2 > match.score1) {
+                        team2Stats.wins++;
+                        team1Stats.losses++;
+                        team2Stats.marginTotal += (match.score2 - match.score1);
+                        team1Stats.marginTotal += (match.score1 - match.score2);
+                    } else {
+                        // Tie - count as 0.5 wins for each? Or just no win/loss
+                        // For pickleball, ties are rare, but we'll handle gracefully
+                        team1Stats.marginTotal += 0;
+                        team2Stats.marginTotal += 0;
+                    }
+                }
+            });
+        });
+
+        // Convert to array and calculate average margin
+        const standingsArray = Object.values(standings).map(s => ({
+            ...s,
+            avgMargin: s.gamesPlayed > 0 ? s.marginTotal / s.gamesPlayed : 0
+        }));
+
+        // Sort by wins (desc), then by average margin (desc) as tiebreaker
+        standingsArray.sort((a, b) => {
+            if (b.wins !== a.wins) return b.wins - a.wins;
+            return b.avgMargin - a.avgMargin;
+        });
+
+        return standingsArray;
+    }
+
+    renderStandings() {
+        if (!this.scoringEnabled) return;
+
+        const standings = this.calculateStandings();
+        const completedMatches = this.schedule.reduce((sum, round) =>
+            sum + round.matches.filter(m => m.score1 !== null && m.score2 !== null).length, 0
+        );
+        const totalMatches = this.schedule.reduce((sum, round) => sum + round.matches.length, 0);
+
+        this.standingsSection.innerHTML = `
+            <h3>Standings</h3>
+            <p class="standings-progress">Matches completed: ${completedMatches} / ${totalMatches}</p>
+            <table class="standings-table">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Team</th>
+                        <th>Record</th>
+                        <th>Avg Margin</th>
+                        <th>Points For</th>
+                        <th>Points Against</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${standings.map((s, index) => `
+                        <tr class="${index === 0 && s.gamesPlayed > 0 ? 'leader' : ''}">
+                            <td class="rank">${index + 1}</td>
+                            <td class="team-name-cell">${s.team.name}</td>
+                            <td class="record">${s.wins}-${s.losses}</td>
+                            <td class="margin ${s.avgMargin > 0 ? 'positive' : s.avgMargin < 0 ? 'negative' : ''}">${s.avgMargin > 0 ? '+' : ''}${s.avgMargin.toFixed(1)}</td>
+                            <td>${s.pointsFor}</td>
+                            <td>${s.pointsAgainst}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <p class="standings-note">Teams are ranked by record. Average margin of victory is used as the tiebreaker.</p>
+        `;
+    }
+
     // ==================== RENDERING ====================
 
     renderSchedule() {
@@ -811,7 +960,7 @@ class PickleballRoundRobin {
                 </div>
                 <div class="matches">
                     ${round.matches.map((match, matchIndex) => `
-                        <div class="match ${match.assignedRound !== null ? 'match-assigned' : ''}">
+                        <div class="match ${match.assignedRound !== null ? 'match-assigned' : ''} ${this.scoringEnabled && match.score1 !== null && match.score2 !== null ? 'match-scored' : ''}">
                             <div class="round-selector">
                                 <label>Round:</label>
                                 <select onchange="app.assignMatchToRound(${roundIndex}, ${matchIndex}, this.value)"
@@ -825,7 +974,19 @@ class PickleballRoundRobin {
                             <span class="court-badge">Court ${match.court}</span>
                             <div class="match-teams">
                                 <span class="team-name">${match.team1.name}</span>
+                                ${this.scoringEnabled ? `
+                                    <input type="number" class="score-input" min="0" max="99"
+                                           value="${match.score1 !== null ? match.score1 : ''}"
+                                           onchange="app.updateScore(${roundIndex}, ${matchIndex}, 1, this.value)"
+                                           placeholder="-">
+                                ` : ''}
                                 <span class="vs">VS</span>
+                                ${this.scoringEnabled ? `
+                                    <input type="number" class="score-input" min="0" max="99"
+                                           value="${match.score2 !== null ? match.score2 : ''}"
+                                           onchange="app.updateScore(${roundIndex}, ${matchIndex}, 2, this.value)"
+                                           placeholder="-">
+                                ` : ''}
                                 <span class="team-name">${match.team2.name}</span>
                             </div>
                         </div>

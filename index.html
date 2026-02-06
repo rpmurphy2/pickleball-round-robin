@@ -40,6 +40,14 @@
                     <button type="button" id="quickAddBtn" class="btn btn-secondary">Add All Teams</button>
                 </div>
 
+                <div class="form-group checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="enableScoring">
+                        <span>Enable Scorekeeping</span>
+                    </label>
+                    <p class="checkbox-description">Track scores, team records, and standings during the tournament</p>
+                </div>
+
                 <button type="button" id="generateBtn" class="btn btn-primary">Generate Schedule</button>
             </section>
 
@@ -74,6 +82,9 @@
                 </div>
                 <div id="summarySection" class="summary-section">
                     <!-- Summary will be generated here -->
+                </div>
+                <div id="standingsSection" class="standings-section hidden">
+                    <!-- Standings will be generated here -->
                 </div>
             </section>
         </main>

@@ -589,6 +589,152 @@ footer {
     font-size: 0.9rem;
 }
 
+/* Checkbox styling */
+.checkbox-group {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #2d8a3e;
+}
+
+.checkbox-description {
+    margin-top: 6px;
+    margin-left: 30px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Score input styling */
+.score-input {
+    width: 60px !important;
+    padding: 6px 4px !important;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 2px solid #e0e0e0;
+    border-radius: 6px;
+}
+
+.score-input:focus {
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
+}
+
+.match-scored {
+    background: #f0fff4 !important;
+    border-color: #2d8a3e !important;
+}
+
+.match-scored .score-input {
+    border-color: #2d8a3e;
+    background: #e8f5e9;
+}
+
+/* Standings section */
+.standings-section {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 2px solid #f0f0f0;
+}
+
+.standings-section h3 {
+    color: #333;
+    margin-bottom: 16px;
+}
+
+.standings-progress {
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+}
+
+.standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.standings-table th,
+.standings-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.standings-table th {
+    background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    color: white;
+    font-weight: 600;
+}
+
+.standings-table tr:hover {
+    background: #f8f9fa;
+}
+
+.standings-table tr:last-child td {
+    border-bottom: none;
+}
+
+.standings-table tr.leader {
+    background: #fff8e1;
+}
+
+.standings-table tr.leader:hover {
+    background: #fff3cd;
+}
+
+.standings-table .rank {
+    font-weight: 700;
+    color: #ff6b35;
+    width: 50px;
+}
+
+.standings-table .team-name-cell {
+    font-weight: 500;
+}
+
+.standings-table .record {
+    font-weight: 600;
+    color: #333;
+}
+
+.standings-table .margin {
+    font-weight: 500;
+}
+
+.standings-table .margin.positive {
+    color: #2d8a3e;
+}
+
+.standings-table .margin.negative {
+    color: #dc3545;
+}
+
+.standings-note {
+    margin-top: 12px;
+    color: #888;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
 /* Print styles */
 @media print {
     body {
@@ -628,6 +774,21 @@ footer {
 
     .round {
         break-inside: avoid;
+    }
+
+    .score-input {
+        border: 1px solid #ccc;
+        background: white;
+        -webkit-appearance: none;
+        -moz-appearance: textfield;
+    }
+
+    .standings-section {
+        break-before: page;
+    }
+
+    .standings-note {
+        display: none;
     }
 }
 
