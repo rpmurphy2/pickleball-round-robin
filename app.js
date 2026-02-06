@@ -705,11 +705,71 @@ class PickleballRoundRobin {
     }
 
     assignCourts() {
-        this.schedule.forEach(round => {
-            round.matches.forEach((match, index) => {
-                match.court = (index % this.numCourts) + 1;
-            });
+        // Track how many times each team has played on each court
+        const teamCourtCounts = {};
+        this.teams.forEach(team => {
+            teamCourtCounts[team.id] = {};
+            for (let c = 1; c <= this.numCourts; c++) {
+                teamCourtCounts[team.id][c] = 0;
+            }
         });
+
+        // Assign courts round by round, trying to balance court usage for each team
+        this.schedule.forEach(round => {
+            const matchesInRound = round.matches.slice();
+            const courtsAssigned = new Set();
+
+            // Sort matches by how imbalanced their teams' court usage is (most imbalanced first)
+            matchesInRound.sort((a, b) => {
+                const aImbalance = this.getCourtImbalance(a.team1.id, a.team2.id, teamCourtCounts);
+                const bImbalance = this.getCourtImbalance(b.team1.id, b.team2.id, teamCourtCounts);
+                return bImbalance - aImbalance;
+            });
+
+            // Assign each match to the best available court
+            matchesInRound.forEach(match => {
+                let bestCourt = 1;
+                let bestScore = Infinity;
+
+                for (let court = 1; court <= this.numCourts; court++) {
+                    if (courtsAssigned.has(court)) continue;
+
+                    // Score = sum of times both teams have played on this court
+                    // Lower is better (we want to put teams on courts they've used less)
+                    const score = teamCourtCounts[match.team1.id][court] +
+                                  teamCourtCounts[match.team2.id][court];
+
+                    if (score < bestScore) {
+                        bestScore = score;
+                        bestCourt = court;
+                    }
+                }
+
+                match.court = bestCourt;
+                courtsAssigned.add(bestCourt);
+
+                // Update court counts for both teams
+                teamCourtCounts[match.team1.id][bestCourt]++;
+                teamCourtCounts[match.team2.id][bestCourt]++;
+            });
+
+            // Re-sort matches by court number for display consistency
+            round.matches.sort((a, b) => a.court - b.court);
+        });
+    }
+
+    getCourtImbalance(team1Id, team2Id, teamCourtCounts) {
+        // Calculate how imbalanced the court distribution is for these two teams
+        // Higher imbalance means we should prioritize assigning this match first
+        const counts1 = Object.values(teamCourtCounts[team1Id]);
+        const counts2 = Object.values(teamCourtCounts[team2Id]);
+
+        const max1 = Math.max(...counts1);
+        const min1 = Math.min(...counts1);
+        const max2 = Math.max(...counts2);
+        const min2 = Math.min(...counts2);
+
+        return (max1 - min1) + (max2 - min2);
     }
 
     // ==================== ROUND ASSIGNMENT ====================
