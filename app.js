@@ -498,10 +498,11 @@ class PickleballRoundRobin {
             if (idx !== -1) {
                 round.matches.splice(idx, 1);
                 // Only remove from teamsUsed if no other match in this round uses these teams
+                // AND the team is not the assigned bye for this round
                 const stillUsed1 = round.matches.some(m => m.team1.id === match.team1.id || m.team2.id === match.team1.id);
                 const stillUsed2 = round.matches.some(m => m.team1.id === match.team2.id || m.team2.id === match.team2.id);
-                if (!stillUsed1) round.teamsUsed.delete(match.team1.id);
-                if (!stillUsed2) round.teamsUsed.delete(match.team2.id);
+                if (!stillUsed1 && round.assignedBye !== match.team1.id) round.teamsUsed.delete(match.team1.id);
+                if (!stillUsed2 && round.assignedBye !== match.team2.id) round.teamsUsed.delete(match.team2.id);
                 placedKeys.delete(match.key);
             }
         };
@@ -541,6 +542,10 @@ class PickleballRoundRobin {
             for (const round of rounds) {
                 round.matches = round.matches.filter(m => m.assignedRound !== null);
                 round.teamsUsed = new Set();
+                // Re-add assigned bye team to teamsUsed
+                if (round.assignedBye) {
+                    round.teamsUsed.add(round.assignedBye);
+                }
                 round.matches.forEach(m => {
                     round.teamsUsed.add(m.team1.id);
                     round.teamsUsed.add(m.team2.id);
