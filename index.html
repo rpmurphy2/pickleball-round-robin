@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickleball Round Robin Generator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏓 Pickleball Round Robin Generator</h1>
+            <p class="subtitle">Doubles Tournament Scheduler</p>
+        </header>
+
+        <main>
+            <section class="setup-section">
+                <h2>Tournament Setup</h2>
+
+                <div class="form-group">
+                    <label for="numCourts">Number of Courts:</label>
+                    <input type="number" id="numCourts" min="1" max="20" value="2">
+                </div>
+
+                <div class="form-group">
+                    <label>Teams:</label>
+                    <div id="teamsList" class="teams-list">
+                        <!-- Teams will be added here -->
+                    </div>
+                    <div class="add-team-form">
+                        <input type="text" id="player1" placeholder="Player 1 name">
+                        <input type="text" id="player2" placeholder="Player 2 name">
+                        <button type="button" id="addTeamBtn" class="btn btn-secondary">Add Team</button>
+                    </div>
+                </div>
+
+                <div class="quick-add">
+                    <label for="quickAddTeams">Quick Add (one team per line, comma-separated players):</label>
+                    <textarea id="quickAddTeams" placeholder="John, Jane&#10;Mike, Sarah&#10;Tom, Lisa"></textarea>
+                    <button type="button" id="quickAddBtn" class="btn btn-secondary">Add All Teams</button>
+                </div>
+
+                <button type="button" id="generateBtn" class="btn btn-primary">Generate Schedule</button>
+            </section>
+
+            <!-- Manual Round Setup Section -->
+            <section id="manualSetupSection" class="manual-setup-section hidden">
+                <h2>Manual Round Setup <span class="optional-badge">(Optional)</span></h2>
+                <p class="section-description">Add specific matchups you want to lock in. The generator will complete the remaining schedule automatically.</p>
+
+                <div id="manualRoundsContainer" class="manual-rounds-container">
+                    <!-- Manual rounds will be added here -->
+                </div>
+
+                <div class="manual-controls">
+                    <button type="button" id="addManualRoundBtn" class="btn btn-secondary">+ Add Manual Round</button>
+                </div>
+
+                <div class="generate-controls">
+                    <button type="button" id="completeScheduleBtn" class="btn btn-primary">Complete Schedule</button>
+                    <button type="button" id="skipManualBtn" class="btn btn-secondary">Skip - Auto Generate All</button>
+                </div>
+            </section>
+
+            <section id="scheduleSection" class="schedule-section hidden">
+                <h2>Tournament Schedule</h2>
+                <div class="schedule-controls">
+                    <button type="button" id="regenerateBtn" class="btn btn-primary" disabled>Regenerate Schedule</button>
+                    <button type="button" id="printBtn" class="btn btn-secondary">Print Schedule</button>
+                    <button type="button" id="resetBtn" class="btn btn-danger">Reset</button>
+                </div>
+                <div id="scheduleOutput" class="schedule-output">
+                    <!-- Schedule will be generated here -->
+                </div>
+                <div id="summarySection" class="summary-section">
+                    <!-- Summary will be generated here -->
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Created for fair and fun pickleball tournaments!</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
