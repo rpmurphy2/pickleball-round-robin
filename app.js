@@ -4,22 +4,40 @@
 class PickleballRoundRobin {
     constructor() {
         this.teams = [];
+        this.players = [];
         this.numCourts = 2;
         this.schedule = [];
         this.scoringEnabled = false;
+        this.tournamentType = 'fixed'; // 'fixed' or 'rotating'
 
         this.init();
     }
 
     init() {
         // DOM elements - Setup
+        this.tournamentTypeSelect = document.getElementById('tournamentType');
+        this.typeDescription = document.getElementById('typeDescription');
         this.numCourtsInput = document.getElementById('numCourts');
+
+        // Fixed partner elements
+        this.teamsGroup = document.getElementById('teamsGroup');
         this.teamsListEl = document.getElementById('teamsList');
         this.player1Input = document.getElementById('player1');
         this.player2Input = document.getElementById('player2');
         this.addTeamBtn = document.getElementById('addTeamBtn');
+        this.quickAddTeamsGroup = document.getElementById('quickAddTeamsGroup');
         this.quickAddTextarea = document.getElementById('quickAddTeams');
         this.quickAddBtn = document.getElementById('quickAddBtn');
+
+        // Rotating partner elements
+        this.playersGroup = document.getElementById('playersGroup');
+        this.playersListEl = document.getElementById('playersList');
+        this.playerNameInput = document.getElementById('playerName');
+        this.addPlayerBtn = document.getElementById('addPlayerBtn');
+        this.quickAddPlayersGroup = document.getElementById('quickAddPlayersGroup');
+        this.quickAddPlayersTextarea = document.getElementById('quickAddPlayers');
+        this.quickAddPlayersBtn = document.getElementById('quickAddPlayersBtn');
+
         this.generateBtn = document.getElementById('generateBtn');
 
         // DOM elements - Schedule
@@ -34,9 +52,17 @@ class PickleballRoundRobin {
         // DOM elements - Scoring
         this.enableScoringCheckbox = document.getElementById('enableScoring');
 
-        // Event listeners - Setup
+        // Event listeners - Tournament type
+        this.tournamentTypeSelect.addEventListener('change', () => this.onTournamentTypeChange());
+
+        // Event listeners - Fixed partner setup
         this.addTeamBtn.addEventListener('click', () => this.addTeam());
         this.quickAddBtn.addEventListener('click', () => this.quickAddTeams());
+
+        // Event listeners - Rotating partner setup
+        this.addPlayerBtn.addEventListener('click', () => this.addPlayer());
+        this.quickAddPlayersBtn.addEventListener('click', () => this.quickAddPlayers());
+
         this.generateBtn.addEventListener('click', () => this.generateSchedule());
 
         // Event listeners - Schedule
@@ -44,13 +70,34 @@ class PickleballRoundRobin {
         this.resetBtn.addEventListener('click', () => this.reset());
         this.regenerateBtn.addEventListener('click', () => this.regenerateWithAssignments());
 
-        // Allow Enter key to add team
+        // Allow Enter key to add team/player
         this.player2Input.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addTeam();
         });
+        this.playerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addPlayer();
+        });
 
-        // Load saved teams if any
+        // Load saved data if any
         this.loadFromStorage();
+    }
+
+    onTournamentTypeChange() {
+        this.tournamentType = this.tournamentTypeSelect.value;
+
+        if (this.tournamentType === 'fixed') {
+            this.typeDescription.textContent = 'Teams stay together for all matches';
+            this.teamsGroup.classList.remove('hidden');
+            this.quickAddTeamsGroup.classList.remove('hidden');
+            this.playersGroup.classList.add('hidden');
+            this.quickAddPlayersGroup.classList.add('hidden');
+        } else {
+            this.typeDescription.textContent = 'Every player partners with every other player once';
+            this.teamsGroup.classList.add('hidden');
+            this.quickAddTeamsGroup.classList.add('hidden');
+            this.playersGroup.classList.remove('hidden');
+            this.quickAddPlayersGroup.classList.remove('hidden');
+        }
     }
 
     // ==================== TEAM MANAGEMENT ====================
@@ -132,18 +179,99 @@ class PickleballRoundRobin {
         `).join('');
     }
 
+    // ==================== PLAYER MANAGEMENT (Rotating Partner) ====================
+
+    addPlayer() {
+        const name = this.playerNameInput.value.trim();
+
+        if (!name) {
+            alert('Please enter a player name');
+            return;
+        }
+
+        this.players.push({
+            id: this.players.length + 1,
+            name
+        });
+
+        this.playerNameInput.value = '';
+        this.playerNameInput.focus();
+
+        this.renderPlayers();
+        this.saveToStorage();
+    }
+
+    quickAddPlayers() {
+        const text = this.quickAddPlayersTextarea.value.trim();
+        if (!text) return;
+
+        const lines = text.split('\n');
+        let addedCount = 0;
+
+        lines.forEach(line => {
+            const name = line.trim();
+            if (name) {
+                this.players.push({
+                    id: this.players.length + 1,
+                    name
+                });
+                addedCount++;
+            }
+        });
+
+        if (addedCount > 0) {
+            this.quickAddPlayersTextarea.value = '';
+            this.renderPlayers();
+            this.saveToStorage();
+        } else {
+            alert('No valid players found. Enter one player name per line.');
+        }
+    }
+
+    removePlayer(index) {
+        this.players.splice(index, 1);
+        this.players.forEach((player, i) => {
+            player.id = i + 1;
+        });
+        this.renderPlayers();
+        this.saveToStorage();
+    }
+
+    renderPlayers() {
+        if (this.players.length === 0) {
+            this.playersListEl.innerHTML = '<p style="color: #999; margin: 0;">No players added yet</p>';
+            return;
+        }
+
+        this.playersListEl.innerHTML = this.players.map((player, index) => `
+            <div class="team-tag">
+                <span class="team-number">P${player.id}</span>
+                <span>${player.name}</span>
+                <button class="remove-team" onclick="app.removePlayer(${index})">&times;</button>
+            </div>
+        `).join('');
+    }
+
     // ==================== SCHEDULE GENERATION ====================
 
     generateSchedule() {
         this.numCourts = parseInt(this.numCourtsInput.value) || 2;
         this.scoringEnabled = this.enableScoringCheckbox.checked;
+        this.tournamentType = this.tournamentTypeSelect.value;
 
-        if (this.teams.length < 2) {
-            alert('Please add at least 2 teams');
-            return;
+        if (this.tournamentType === 'fixed') {
+            if (this.teams.length < 2) {
+                alert('Please add at least 2 teams');
+                return;
+            }
+            this.schedule = this.createScheduleWithLockedMatchups([]);
+        } else {
+            if (this.players.length < 4) {
+                alert('Please add at least 4 players for rotating partner');
+                return;
+            }
+            this.schedule = this.createRotatingPartnerSchedule();
         }
-
-        this.schedule = this.createScheduleWithLockedMatchups([]);
 
         if (!this.schedule) {
             alert('Unable to generate a valid schedule.');
@@ -250,6 +378,168 @@ class PickleballRoundRobin {
         }
 
         return null;
+    }
+
+    // ==================== ROTATING PARTNER SCHEDULE ====================
+
+    createRotatingPartnerSchedule() {
+        const n = this.players.length;
+
+        // In rotating partner, each player partners with every other player exactly once
+        // Total partnerships = n * (n-1) / 2
+        // Each match uses 2 partnerships, so total matches = n * (n-1) / 4
+
+        // For this to work perfectly, n must be divisible by 4 or we need byes
+        // We'll generate all possible partnerships and then pair them into matches
+
+        // Generate all partnerships (each pair of players)
+        const allPartnerships = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                allPartnerships.push({
+                    player1: this.players[i],
+                    player2: this.players[j],
+                    key: `${this.players[i].id}-${this.players[j].id}`
+                });
+            }
+        }
+
+        // Now we need to create matches where each match is Partnership A vs Partnership B
+        // and no player appears in both partnerships
+        const matches = [];
+        const usedPartnerships = new Set();
+
+        // Try to create matches from partnerships
+        for (let i = 0; i < allPartnerships.length; i++) {
+            if (usedPartnerships.has(i)) continue;
+
+            const p1 = allPartnerships[i];
+            const p1Players = new Set([p1.player1.id, p1.player2.id]);
+
+            // Find a compatible partnership (no overlapping players)
+            for (let j = i + 1; j < allPartnerships.length; j++) {
+                if (usedPartnerships.has(j)) continue;
+
+                const p2 = allPartnerships[j];
+                if (!p1Players.has(p2.player1.id) && !p1Players.has(p2.player2.id)) {
+                    // Valid match - no overlapping players
+                    matches.push({
+                        team1: {
+                            id: `${p1.player1.id}-${p1.player2.id}`,
+                            name: `${p1.player1.name} & ${p1.player2.name}`,
+                            player1: p1.player1,
+                            player2: p1.player2
+                        },
+                        team2: {
+                            id: `${p2.player1.id}-${p2.player2.id}`,
+                            name: `${p2.player1.name} & ${p2.player2.name}`,
+                            player1: p2.player1,
+                            player2: p2.player2
+                        },
+                        assignedRound: null
+                    });
+                    usedPartnerships.add(i);
+                    usedPartnerships.add(j);
+                    break;
+                }
+            }
+        }
+
+        // If we couldn't pair all partnerships, some will be left over
+        // This happens when n is not divisible by 4
+        // We'll handle these as "bye" partnerships or skip them
+
+        // Now organize matches into rounds
+        // Each round can have at most floor(n/4) matches (since each match uses 4 players)
+        const matchesPerRound = Math.floor(n / 4);
+        const totalRounds = Math.ceil(matches.length / matchesPerRound);
+
+        // Use greedy algorithm to assign matches to rounds
+        const rounds = [];
+        for (let r = 0; r < totalRounds; r++) {
+            rounds.push({
+                roundNumber: r + 1,
+                matches: [],
+                playersUsed: new Set(),
+                hasAssignedMatches: false,
+                assignedBye: null,
+                byeTeam: null
+            });
+        }
+
+        // Assign matches to rounds ensuring no player plays twice in same round
+        const unassignedMatches = [...matches];
+
+        for (const round of rounds) {
+            const toRemove = [];
+
+            for (let i = 0; i < unassignedMatches.length; i++) {
+                const match = unassignedMatches[i];
+                const matchPlayers = [
+                    match.team1.player1.id,
+                    match.team1.player2.id,
+                    match.team2.player1.id,
+                    match.team2.player2.id
+                ];
+
+                // Check if any player is already used in this round
+                const conflict = matchPlayers.some(p => round.playersUsed.has(p));
+
+                if (!conflict && round.matches.length < matchesPerRound) {
+                    round.matches.push(match);
+                    matchPlayers.forEach(p => round.playersUsed.add(p));
+                    toRemove.push(i);
+                }
+            }
+
+            // Remove assigned matches (in reverse order to preserve indices)
+            for (let i = toRemove.length - 1; i >= 0; i--) {
+                unassignedMatches.splice(toRemove[i], 1);
+            }
+        }
+
+        // Handle any remaining unassigned matches by creating additional rounds
+        while (unassignedMatches.length > 0) {
+            const round = {
+                roundNumber: rounds.length + 1,
+                matches: [],
+                playersUsed: new Set(),
+                hasAssignedMatches: false,
+                assignedBye: null,
+                byeTeam: null
+            };
+
+            const toRemove = [];
+            for (let i = 0; i < unassignedMatches.length; i++) {
+                const match = unassignedMatches[i];
+                const matchPlayers = [
+                    match.team1.player1.id,
+                    match.team1.player2.id,
+                    match.team2.player1.id,
+                    match.team2.player2.id
+                ];
+
+                const conflict = matchPlayers.some(p => round.playersUsed.has(p));
+
+                if (!conflict) {
+                    round.matches.push(match);
+                    matchPlayers.forEach(p => round.playersUsed.add(p));
+                    toRemove.push(i);
+                }
+            }
+
+            for (let i = toRemove.length - 1; i >= 0; i--) {
+                unassignedMatches.splice(toRemove[i], 1);
+            }
+
+            if (round.matches.length > 0) {
+                rounds.push(round);
+            } else {
+                break; // Safety valve
+            }
+        }
+
+        return rounds;
     }
 
     createScheduleWithLockedMatchups(lockedMatchups, assignedByes = {}) {
@@ -748,7 +1038,11 @@ class PickleballRoundRobin {
     }
 
     calculateStandings() {
-        // Initialize standings for each team
+        if (this.tournamentType === 'rotating') {
+            return this.calculatePlayerStandings();
+        }
+
+        // Fixed partner standings - by team
         const standings = {};
         this.teams.forEach(team => {
             standings[team.id] = {
@@ -788,11 +1082,89 @@ class PickleballRoundRobin {
                         team2Stats.marginTotal += (match.score2 - match.score1);
                         team1Stats.marginTotal += (match.score1 - match.score2);
                     } else {
-                        // Tie - count as 0.5 wins for each? Or just no win/loss
-                        // For pickleball, ties are rare, but we'll handle gracefully
+                        // Tie - no win/loss change
                         team1Stats.marginTotal += 0;
                         team2Stats.marginTotal += 0;
                     }
+                }
+            });
+        });
+
+        // Convert to array and calculate average margin
+        const standingsArray = Object.values(standings).map(s => ({
+            ...s,
+            avgMargin: s.gamesPlayed > 0 ? s.marginTotal / s.gamesPlayed : 0
+        }));
+
+        // Sort by wins (desc), then by average margin (desc) as tiebreaker
+        standingsArray.sort((a, b) => {
+            if (b.wins !== a.wins) return b.wins - a.wins;
+            return b.avgMargin - a.avgMargin;
+        });
+
+        return standingsArray;
+    }
+
+    calculatePlayerStandings() {
+        // Rotating partner standings - by individual player
+        const standings = {};
+        this.players.forEach(player => {
+            standings[player.id] = {
+                player: player,
+                wins: 0,
+                losses: 0,
+                pointsFor: 0,
+                pointsAgainst: 0,
+                marginTotal: 0,
+                gamesPlayed: 0
+            };
+        });
+
+        // Calculate stats from all matches with scores
+        this.schedule.forEach(round => {
+            round.matches.forEach(match => {
+                if (match.score1 !== null && match.score2 !== null) {
+                    // Team 1 players
+                    const p1a = standings[match.team1.player1.id];
+                    const p1b = standings[match.team1.player2.id];
+                    // Team 2 players
+                    const p2a = standings[match.team2.player1.id];
+                    const p2b = standings[match.team2.player2.id];
+
+                    // Update points for all 4 players
+                    [p1a, p1b].forEach(p => {
+                        p.pointsFor += match.score1;
+                        p.pointsAgainst += match.score2;
+                        p.gamesPlayed++;
+                    });
+                    [p2a, p2b].forEach(p => {
+                        p.pointsFor += match.score2;
+                        p.pointsAgainst += match.score1;
+                        p.gamesPlayed++;
+                    });
+
+                    if (match.score1 > match.score2) {
+                        // Team 1 wins
+                        [p1a, p1b].forEach(p => {
+                            p.wins++;
+                            p.marginTotal += (match.score1 - match.score2);
+                        });
+                        [p2a, p2b].forEach(p => {
+                            p.losses++;
+                            p.marginTotal += (match.score2 - match.score1);
+                        });
+                    } else if (match.score2 > match.score1) {
+                        // Team 2 wins
+                        [p2a, p2b].forEach(p => {
+                            p.wins++;
+                            p.marginTotal += (match.score2 - match.score1);
+                        });
+                        [p1a, p1b].forEach(p => {
+                            p.losses++;
+                            p.marginTotal += (match.score1 - match.score2);
+                        });
+                    }
+                    // Ties: no win/loss change
                 }
             });
         });
@@ -821,6 +1193,9 @@ class PickleballRoundRobin {
         );
         const totalMatches = this.schedule.reduce((sum, round) => sum + round.matches.length, 0);
 
+        const isRotating = this.tournamentType === 'rotating';
+        const entityLabel = isRotating ? 'Player' : 'Team';
+
         this.standingsSection.innerHTML = `
             <h3>Standings</h3>
             <p class="standings-progress">Matches completed: ${completedMatches} / ${totalMatches}</p>
@@ -828,7 +1203,7 @@ class PickleballRoundRobin {
                 <thead>
                     <tr>
                         <th>Rank</th>
-                        <th>Team</th>
+                        <th>${entityLabel}</th>
                         <th>Record</th>
                         <th>Avg Margin</th>
                         <th>Points For</th>
@@ -839,7 +1214,7 @@ class PickleballRoundRobin {
                     ${standings.map((s, index) => `
                         <tr class="${index === 0 && s.gamesPlayed > 0 ? 'leader' : ''}">
                             <td class="rank">${index + 1}</td>
-                            <td class="team-name-cell">${s.team.name}</td>
+                            <td class="team-name-cell">${isRotating ? s.player.name : s.team.name}</td>
                             <td class="record">${s.wins}-${s.losses}</td>
                             <td class="margin ${s.avgMargin > 0 ? 'positive' : s.avgMargin < 0 ? 'negative' : ''}">${s.avgMargin > 0 ? '+' : ''}${s.avgMargin.toFixed(1)}</td>
                             <td>${s.pointsFor}</td>
@@ -848,21 +1223,22 @@ class PickleballRoundRobin {
                     `).join('')}
                 </tbody>
             </table>
-            <p class="standings-note">Teams are ranked by record. Average margin of victory is used as the tiebreaker.</p>
+            <p class="standings-note">${isRotating ? 'Players' : 'Teams'} are ranked by record. Average margin of victory is used as the tiebreaker.</p>
         `;
     }
 
     // ==================== RENDERING ====================
 
     renderSchedule() {
-        const n = this.teams.length;
-        const totalRounds = n % 2 === 0 ? n - 1 : n;
-        const hasOddTeams = n % 2 !== 0;
+        const isRotating = this.tournamentType === 'rotating';
+        const n = isRotating ? this.players.length : this.teams.length;
+        const totalRounds = isRotating ? this.schedule.length : (n % 2 === 0 ? n - 1 : n);
+        const hasOddTeams = !isRotating && n % 2 !== 0;
 
         this.scheduleOutput.innerHTML = this.schedule.map((round, roundIndex) => `
             <div class="round ${round.hasAssignedMatches || round.assignedBye ? 'has-assignments' : ''}">
                 <div class="round-header">
-                    <h3>Round ${round.roundNumber}${(round.hasAssignedMatches || round.assignedBye) ? '<span class="assigned-badge">Has Assignments</span>' : ''}</h3>
+                    <h3>Round ${round.roundNumber}${!isRotating && (round.hasAssignedMatches || round.assignedBye) ? '<span class="assigned-badge">Has Assignments</span>' : ''}</h3>
                     ${hasOddTeams && round.byeTeam ? `
                         <div class="bye-selector">
                             <label>Bye:</label>
@@ -880,16 +1256,18 @@ class PickleballRoundRobin {
                 <div class="matches">
                     ${round.matches.map((match, matchIndex) => `
                         <div class="match ${match.assignedRound !== null ? 'match-assigned' : ''} ${this.scoringEnabled && match.score1 !== null && match.score2 !== null ? 'match-scored' : ''}">
-                            <div class="round-selector">
-                                <label>Round:</label>
-                                <select onchange="app.assignMatchToRound(${roundIndex}, ${matchIndex}, this.value)"
-                                        title="Assign this match to a specific round">
-                                    <option value="">Auto</option>
-                                    ${Array.from({length: totalRounds}, (_, i) => i + 1).map(r =>
-                                        `<option value="${r}" ${match.assignedRound === r ? 'selected' : ''}>R${r}</option>`
-                                    ).join('')}
-                                </select>
-                            </div>
+                            ${!isRotating ? `
+                                <div class="round-selector">
+                                    <label>Round:</label>
+                                    <select onchange="app.assignMatchToRound(${roundIndex}, ${matchIndex}, this.value)"
+                                            title="Assign this match to a specific round">
+                                        <option value="">Auto</option>
+                                        ${Array.from({length: totalRounds}, (_, i) => i + 1).map(r =>
+                                            `<option value="${r}" ${match.assignedRound === r ? 'selected' : ''}>R${r}</option>`
+                                        ).join('')}
+                                    </select>
+                                </div>
+                            ` : ''}
                             <span class="court-badge">Court ${match.court}</span>
                             <div class="match-teams">
                                 <span class="team-name">${match.team1.name}</span>
@@ -914,42 +1292,91 @@ class PickleballRoundRobin {
             </div>
         `).join('');
 
-        this.updateRegenerateButton();
+        if (!isRotating) {
+            this.updateRegenerateButton();
+        } else {
+            this.regenerateBtn.disabled = true;
+        }
     }
 
     renderSummary() {
         const totalMatches = this.schedule.reduce((sum, round) => sum + round.matches.length, 0);
-        const matchesPerTeam = this.teams.length - 1;
+        const isRotating = this.tournamentType === 'rotating';
 
-        this.summarySection.innerHTML = `
-            <h3>Tournament Summary</h3>
-            <table class="summary-table">
-                <thead>
-                    <tr>
-                        <th>Team</th>
-                        <th>Players</th>
-                        <th>Matches</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${this.teams.map(team => `
+        if (isRotating) {
+            // Rotating partner summary - count matches per player
+            const matchCounts = {};
+            this.players.forEach(p => { matchCounts[p.id] = 0; });
+
+            this.schedule.forEach(round => {
+                round.matches.forEach(match => {
+                    matchCounts[match.team1.player1.id]++;
+                    matchCounts[match.team1.player2.id]++;
+                    matchCounts[match.team2.player1.id]++;
+                    matchCounts[match.team2.player2.id]++;
+                });
+            });
+
+            this.summarySection.innerHTML = `
+                <h3>Tournament Summary</h3>
+                <table class="summary-table">
+                    <thead>
                         <tr>
-                            <td><strong>Team ${team.id}</strong></td>
-                            <td>${team.name}</td>
-                            <td>${matchesPerTeam}</td>
+                            <th>Player</th>
+                            <th>Matches</th>
                         </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-            <p style="margin-top: 16px; color: #666;">
-                <strong>Total Rounds:</strong> ${this.schedule.length} |
-                <strong>Total Matches:</strong> ${totalMatches} |
-                <strong>Courts Used:</strong> ${this.numCourts}
-            </p>
-            <p style="margin-top: 8px; color: #888; font-size: 0.9rem;">
-                To move a match to a different round: use the "Round" dropdown to assign it, then click "Regenerate Schedule".
-            </p>
-        `;
+                    </thead>
+                    <tbody>
+                        ${this.players.map(player => `
+                            <tr>
+                                <td><strong>${player.name}</strong></td>
+                                <td>${matchCounts[player.id]}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <p style="margin-top: 16px; color: #666;">
+                    <strong>Total Rounds:</strong> ${this.schedule.length} |
+                    <strong>Total Matches:</strong> ${totalMatches} |
+                    <strong>Courts Used:</strong> ${this.numCourts}
+                </p>
+                <p style="margin-top: 8px; color: #888; font-size: 0.9rem;">
+                    Each player partners with every other player once.
+                </p>
+            `;
+        } else {
+            const matchesPerTeam = this.teams.length - 1;
+
+            this.summarySection.innerHTML = `
+                <h3>Tournament Summary</h3>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th>Players</th>
+                            <th>Matches</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${this.teams.map(team => `
+                            <tr>
+                                <td><strong>Team ${team.id}</strong></td>
+                                <td>${team.name}</td>
+                                <td>${matchesPerTeam}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+                <p style="margin-top: 16px; color: #666;">
+                    <strong>Total Rounds:</strong> ${this.schedule.length} |
+                    <strong>Total Matches:</strong> ${totalMatches} |
+                    <strong>Courts Used:</strong> ${this.numCourts}
+                </p>
+                <p style="margin-top: 8px; color: #888; font-size: 0.9rem;">
+                    To move a match to a different round: use the "Round" dropdown to assign it, then click "Regenerate Schedule".
+                </p>
+            `;
+        }
     }
 
     // ==================== UTILITIES ====================
@@ -957,15 +1384,14 @@ class PickleballRoundRobin {
     reset() {
         if (confirm('Are you sure you want to reset the schedule?')) {
             this.schedule = [];
-            this.manualRounds = [];
             this.scheduleSection.classList.add('hidden');
-            this.manualSetupSection.classList.add('hidden');
         }
     }
 
     saveToStorage() {
         try {
             localStorage.setItem('pickleballTeams', JSON.stringify(this.teams));
+            localStorage.setItem('pickleballPlayers', JSON.stringify(this.players));
         } catch (e) {
             // Storage not available
         }
@@ -973,10 +1399,15 @@ class PickleballRoundRobin {
 
     loadFromStorage() {
         try {
-            const saved = localStorage.getItem('pickleballTeams');
-            if (saved) {
-                this.teams = JSON.parse(saved);
+            const savedTeams = localStorage.getItem('pickleballTeams');
+            if (savedTeams) {
+                this.teams = JSON.parse(savedTeams);
                 this.renderTeams();
+            }
+            const savedPlayers = localStorage.getItem('pickleballPlayers');
+            if (savedPlayers) {
+                this.players = JSON.parse(savedPlayers);
+                this.renderPlayers();
             }
         } catch (e) {
             // Storage not available or invalid data

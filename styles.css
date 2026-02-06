@@ -80,6 +80,39 @@ input[type="number"] {
     width: 100px;
 }
 
+select {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+select:focus {
+    outline: none;
+    border-color: #2d8a3e;
+    box-shadow: 0 0 0 3px rgba(45, 138, 62, 0.1);
+}
+
+.field-description {
+    margin-top: 6px;
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.add-player-form {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.add-player-form input[type="text"] {
+    flex: 1;
+    min-width: 200px;
+}
+
 .teams-list {
     display: flex;
     flex-wrap: wrap;
