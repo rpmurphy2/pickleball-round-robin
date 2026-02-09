@@ -22,6 +22,7 @@
                     <select id="tournamentType">
                         <option value="fixed">Fixed Partner</option>
                         <option value="rotating">Rotating Partner</option>
+                        <option value="mixed">Mixed Doubles Rotating Partner</option>
                     </select>
                     <p class="field-description" id="typeDescription">Teams stay together for all matches</p>
                 </div>
@@ -64,6 +65,46 @@
                     <label for="quickAddPlayers">Quick Add (one player per line):</label>
                     <textarea id="quickAddPlayers" placeholder="John&#10;Jane&#10;Mike&#10;Sarah"></textarea>
                     <button type="button" id="quickAddPlayersBtn" class="btn btn-secondary">Add All Players</button>
+                </div>
+
+                <div class="form-group hidden" id="mixedPlayersGroup">
+                    <div class="mixed-columns">
+                        <div class="mixed-column">
+                            <label>Male Players:</label>
+                            <div id="malePlayersList" class="teams-list">
+                                <!-- Male players will be added here -->
+                            </div>
+                            <div class="add-player-form">
+                                <input type="text" id="malePlayerName" placeholder="Male player name">
+                                <button type="button" id="addMalePlayerBtn" class="btn btn-secondary">Add</button>
+                            </div>
+                        </div>
+                        <div class="mixed-column">
+                            <label>Female Players:</label>
+                            <div id="femalePlayersList" class="teams-list">
+                                <!-- Female players will be added here -->
+                            </div>
+                            <div class="add-player-form">
+                                <input type="text" id="femalePlayerName" placeholder="Female player name">
+                                <button type="button" id="addFemalePlayerBtn" class="btn btn-secondary">Add</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quick-add hidden" id="quickAddMixedGroup">
+                    <div class="mixed-columns">
+                        <div class="mixed-column">
+                            <label for="quickAddMales">Quick Add Males (one per line):</label>
+                            <textarea id="quickAddMales" placeholder="John&#10;Mike&#10;Tom"></textarea>
+                            <button type="button" id="quickAddMalesBtn" class="btn btn-secondary">Add All Males</button>
+                        </div>
+                        <div class="mixed-column">
+                            <label for="quickAddFemales">Quick Add Females (one per line):</label>
+                            <textarea id="quickAddFemales" placeholder="Jane&#10;Sarah&#10;Lisa"></textarea>
+                            <button type="button" id="quickAddFemalesBtn" class="btn btn-secondary">Add All Females</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group checkbox-group">

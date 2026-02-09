@@ -5,10 +5,12 @@ class PickleballRoundRobin {
     constructor() {
         this.teams = [];
         this.players = [];
+        this.malePlayers = [];
+        this.femalePlayers = [];
         this.numCourts = 2;
         this.schedule = [];
         this.scoringEnabled = false;
-        this.tournamentType = 'fixed'; // 'fixed' or 'rotating'
+        this.tournamentType = 'fixed'; // 'fixed', 'rotating', or 'mixed'
 
         this.init();
     }
@@ -38,6 +40,20 @@ class PickleballRoundRobin {
         this.quickAddPlayersTextarea = document.getElementById('quickAddPlayers');
         this.quickAddPlayersBtn = document.getElementById('quickAddPlayersBtn');
 
+        // Mixed doubles elements
+        this.mixedPlayersGroup = document.getElementById('mixedPlayersGroup');
+        this.malePlayersListEl = document.getElementById('malePlayersList');
+        this.femalePlayersListEl = document.getElementById('femalePlayersList');
+        this.malePlayerNameInput = document.getElementById('malePlayerName');
+        this.femalePlayerNameInput = document.getElementById('femalePlayerName');
+        this.addMalePlayerBtn = document.getElementById('addMalePlayerBtn');
+        this.addFemalePlayerBtn = document.getElementById('addFemalePlayerBtn');
+        this.quickAddMixedGroup = document.getElementById('quickAddMixedGroup');
+        this.quickAddMalesTextarea = document.getElementById('quickAddMales');
+        this.quickAddFemalesTextarea = document.getElementById('quickAddFemales');
+        this.quickAddMalesBtn = document.getElementById('quickAddMalesBtn');
+        this.quickAddFemalesBtn = document.getElementById('quickAddFemalesBtn');
+
         this.generateBtn = document.getElementById('generateBtn');
 
         // DOM elements - Schedule
@@ -63,6 +79,12 @@ class PickleballRoundRobin {
         this.addPlayerBtn.addEventListener('click', () => this.addPlayer());
         this.quickAddPlayersBtn.addEventListener('click', () => this.quickAddPlayers());
 
+        // Event listeners - Mixed doubles setup
+        this.addMalePlayerBtn.addEventListener('click', () => this.addMalePlayer());
+        this.addFemalePlayerBtn.addEventListener('click', () => this.addFemalePlayer());
+        this.quickAddMalesBtn.addEventListener('click', () => this.quickAddMales());
+        this.quickAddFemalesBtn.addEventListener('click', () => this.quickAddFemales());
+
         this.generateBtn.addEventListener('click', () => this.generateSchedule());
 
         // Event listeners - Schedule
@@ -77,6 +99,12 @@ class PickleballRoundRobin {
         this.playerNameInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') this.addPlayer();
         });
+        this.malePlayerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addMalePlayer();
+        });
+        this.femalePlayerNameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addFemalePlayer();
+        });
 
         // Load saved data if any
         this.loadFromStorage();
@@ -85,18 +113,26 @@ class PickleballRoundRobin {
     onTournamentTypeChange() {
         this.tournamentType = this.tournamentTypeSelect.value;
 
+        // Hide all input groups first
+        this.teamsGroup.classList.add('hidden');
+        this.quickAddTeamsGroup.classList.add('hidden');
+        this.playersGroup.classList.add('hidden');
+        this.quickAddPlayersGroup.classList.add('hidden');
+        this.mixedPlayersGroup.classList.add('hidden');
+        this.quickAddMixedGroup.classList.add('hidden');
+
         if (this.tournamentType === 'fixed') {
             this.typeDescription.textContent = 'Teams stay together for all matches';
             this.teamsGroup.classList.remove('hidden');
             this.quickAddTeamsGroup.classList.remove('hidden');
-            this.playersGroup.classList.add('hidden');
-            this.quickAddPlayersGroup.classList.add('hidden');
-        } else {
+        } else if (this.tournamentType === 'rotating') {
             this.typeDescription.textContent = 'Every player partners with every other player once';
-            this.teamsGroup.classList.add('hidden');
-            this.quickAddTeamsGroup.classList.add('hidden');
             this.playersGroup.classList.remove('hidden');
             this.quickAddPlayersGroup.classList.remove('hidden');
+        } else if (this.tournamentType === 'mixed') {
+            this.typeDescription.textContent = 'Each team is one male and one female. Every male partners with every female once.';
+            this.mixedPlayersGroup.classList.remove('hidden');
+            this.quickAddMixedGroup.classList.remove('hidden');
         }
     }
 
@@ -252,6 +288,154 @@ class PickleballRoundRobin {
         `).join('');
     }
 
+    // ==================== MIXED DOUBLES PLAYER MANAGEMENT ====================
+
+    addMalePlayer() {
+        const name = this.malePlayerNameInput.value.trim();
+
+        if (!name) {
+            alert('Please enter a player name');
+            return;
+        }
+
+        this.malePlayers.push({
+            id: this.malePlayers.length + 1,
+            name,
+            gender: 'male'
+        });
+
+        this.malePlayerNameInput.value = '';
+        this.malePlayerNameInput.focus();
+
+        this.renderMalePlayers();
+        this.saveToStorage();
+    }
+
+    addFemalePlayer() {
+        const name = this.femalePlayerNameInput.value.trim();
+
+        if (!name) {
+            alert('Please enter a player name');
+            return;
+        }
+
+        this.femalePlayers.push({
+            id: this.femalePlayers.length + 1,
+            name,
+            gender: 'female'
+        });
+
+        this.femalePlayerNameInput.value = '';
+        this.femalePlayerNameInput.focus();
+
+        this.renderFemalePlayers();
+        this.saveToStorage();
+    }
+
+    quickAddMales() {
+        const text = this.quickAddMalesTextarea.value.trim();
+        if (!text) return;
+
+        const lines = text.split('\n');
+        let addedCount = 0;
+
+        lines.forEach(line => {
+            const name = line.trim();
+            if (name) {
+                this.malePlayers.push({
+                    id: this.malePlayers.length + 1,
+                    name,
+                    gender: 'male'
+                });
+                addedCount++;
+            }
+        });
+
+        if (addedCount > 0) {
+            this.quickAddMalesTextarea.value = '';
+            this.renderMalePlayers();
+            this.saveToStorage();
+        } else {
+            alert('No valid player names found.');
+        }
+    }
+
+    quickAddFemales() {
+        const text = this.quickAddFemalesTextarea.value.trim();
+        if (!text) return;
+
+        const lines = text.split('\n');
+        let addedCount = 0;
+
+        lines.forEach(line => {
+            const name = line.trim();
+            if (name) {
+                this.femalePlayers.push({
+                    id: this.femalePlayers.length + 1,
+                    name,
+                    gender: 'female'
+                });
+                addedCount++;
+            }
+        });
+
+        if (addedCount > 0) {
+            this.quickAddFemalesTextarea.value = '';
+            this.renderFemalePlayers();
+            this.saveToStorage();
+        } else {
+            alert('No valid player names found.');
+        }
+    }
+
+    removeMalePlayer(index) {
+        this.malePlayers.splice(index, 1);
+        this.malePlayers.forEach((player, i) => {
+            player.id = i + 1;
+        });
+        this.renderMalePlayers();
+        this.saveToStorage();
+    }
+
+    removeFemalePlayer(index) {
+        this.femalePlayers.splice(index, 1);
+        this.femalePlayers.forEach((player, i) => {
+            player.id = i + 1;
+        });
+        this.renderFemalePlayers();
+        this.saveToStorage();
+    }
+
+    renderMalePlayers() {
+        if (this.malePlayers.length === 0) {
+            this.malePlayersListEl.innerHTML = '<p style="color: #999; margin: 0;">No male players added yet</p>';
+            return;
+        }
+
+        this.malePlayersListEl.innerHTML = this.malePlayers.map((player, index) => `
+            <div class="team-tag male-tag">
+                <span class="team-number">M${player.id}</span>
+                <span>${player.name}</span>
+                <button class="remove-team" onclick="app.removeMalePlayer(${index})">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    renderFemalePlayers() {
+        if (this.femalePlayers.length === 0) {
+            this.femalePlayersListEl.innerHTML = '<p style="color: #999; margin: 0;">No female players added yet</p>';
+            return;
+        }
+
+        this.femalePlayersListEl.innerHTML = this.femalePlayers.map((player, index) => `
+            <div class="team-tag female-tag">
+                <span class="team-number">F${player.id}</span>
+                <span>${player.name}</span>
+                <button class="remove-team" onclick="app.removeFemalePlayer(${index})">&times;</button>
+            </div>
+        `).join('');
+    }
+
     // ==================== SCHEDULE GENERATION ====================
 
     generateSchedule() {
@@ -265,12 +449,22 @@ class PickleballRoundRobin {
                 return;
             }
             this.schedule = this.createScheduleWithLockedMatchups([]);
-        } else {
+        } else if (this.tournamentType === 'rotating') {
             if (this.players.length < 4) {
                 alert('Please add at least 4 players for rotating partner');
                 return;
             }
             this.schedule = this.createRotatingPartnerSchedule();
+        } else if (this.tournamentType === 'mixed') {
+            if (this.malePlayers.length < 2 || this.femalePlayers.length < 2) {
+                alert('Please add at least 2 male and 2 female players');
+                return;
+            }
+            if (this.malePlayers.length !== this.femalePlayers.length) {
+                alert('Mixed doubles requires an equal number of male and female players');
+                return;
+            }
+            this.schedule = this.createMixedDoublesSchedule();
         }
 
         if (!this.schedule) {
@@ -538,6 +732,228 @@ class PickleballRoundRobin {
                 break; // Safety valve
             }
         }
+
+        return rounds;
+    }
+
+    // ==================== MIXED DOUBLES SCHEDULE ====================
+
+    createMixedDoublesSchedule() {
+        const numMales = this.malePlayers.length;
+        const numFemales = this.femalePlayers.length;
+        const n = numMales; // Since they're equal
+
+        // In mixed doubles, each team is one male + one female
+        // Each male partners with each female exactly once
+        // Total teams = n * n = n²
+        // Total matches needed = n² / 2 (each team plays once)
+
+        // Generate all possible mixed teams (male + female)
+        const allTeams = [];
+        for (const male of this.malePlayers) {
+            for (const female of this.femalePlayers) {
+                allTeams.push({
+                    id: `${male.id}M-${female.id}F`,
+                    name: `${male.name} & ${female.name}`,
+                    male: male,
+                    female: female
+                });
+            }
+        }
+
+        // Track opponent matchups for balancing
+        // maleOpponents[m1][m2] = count of times male m1 played against male m2
+        const maleOpponents = {};
+        const femaleOpponents = {};
+        this.malePlayers.forEach(m => {
+            maleOpponents[m.id] = {};
+            this.malePlayers.forEach(m2 => { maleOpponents[m.id][m2.id] = 0; });
+        });
+        this.femalePlayers.forEach(f => {
+            femaleOpponents[f.id] = {};
+            this.femalePlayers.forEach(f2 => { femaleOpponents[f.id][f2.id] = 0; });
+        });
+
+        // Generate ALL valid matches (teams with no player overlap)
+        const allValidMatches = [];
+        for (let i = 0; i < allTeams.length; i++) {
+            for (let j = i + 1; j < allTeams.length; j++) {
+                const t1 = allTeams[i];
+                const t2 = allTeams[j];
+                // Valid if different male AND different female
+                if (t1.male.id !== t2.male.id && t1.female.id !== t2.female.id) {
+                    allValidMatches.push({
+                        team1: t1,
+                        team2: t2,
+                        key: `${t1.id}|${t2.id}`
+                    });
+                }
+            }
+        }
+
+        // We need to select n²/2 matches such that each team plays exactly once
+        // AND opponent variety is maximized
+
+        // Use a smarter algorithm: build rounds one at a time
+        // Each round has n/2 matches (uses all n males and all n females)
+        const matchesPerRound = Math.floor(n / 2);
+        const totalRounds = n; // With n males and n females, we need n rounds
+
+        const rounds = [];
+        const usedTeamIds = new Set();
+
+        for (let r = 0; r < totalRounds; r++) {
+            const round = {
+                roundNumber: r + 1,
+                matches: [],
+                malesUsed: new Set(),
+                femalesUsed: new Set(),
+                hasAssignedMatches: false,
+                assignedBye: null,
+                byeTeam: null
+            };
+
+            // Find matches for this round that:
+            // 1. Don't use already-used teams
+            // 2. Don't have player conflicts within the round
+            // 3. Minimize repeated opponent matchups
+
+            // Get available matches for this round
+            const availableMatches = allValidMatches.filter(m =>
+                !usedTeamIds.has(m.team1.id) && !usedTeamIds.has(m.team2.id)
+            );
+
+            // Sort by opponent variety score (prefer matches with less-frequent opponent pairings)
+            availableMatches.sort((a, b) => {
+                const scoreA = maleOpponents[a.team1.male.id][a.team2.male.id] +
+                               femaleOpponents[a.team1.female.id][a.team2.female.id];
+                const scoreB = maleOpponents[b.team1.male.id][b.team2.male.id] +
+                               femaleOpponents[b.team1.female.id][b.team2.female.id];
+                return scoreA - scoreB;
+            });
+
+            // Greedily select matches for this round
+            for (const matchData of availableMatches) {
+                if (round.matches.length >= matchesPerRound) break;
+
+                const t1 = matchData.team1;
+                const t2 = matchData.team2;
+
+                // Check if players are already used in this round
+                if (round.malesUsed.has(t1.male.id) || round.malesUsed.has(t2.male.id)) continue;
+                if (round.femalesUsed.has(t1.female.id) || round.femalesUsed.has(t2.female.id)) continue;
+
+                // Add match
+                const match = {
+                    team1: {
+                        id: t1.id,
+                        name: t1.name,
+                        player1: t1.male,
+                        player2: t1.female,
+                        male: t1.male,
+                        female: t1.female
+                    },
+                    team2: {
+                        id: t2.id,
+                        name: t2.name,
+                        player1: t2.male,
+                        player2: t2.female,
+                        male: t2.male,
+                        female: t2.female
+                    },
+                    assignedRound: null
+                };
+
+                round.matches.push(match);
+                round.malesUsed.add(t1.male.id);
+                round.malesUsed.add(t2.male.id);
+                round.femalesUsed.add(t1.female.id);
+                round.femalesUsed.add(t2.female.id);
+                usedTeamIds.add(t1.id);
+                usedTeamIds.add(t2.id);
+
+                // Update opponent tracking
+                maleOpponents[t1.male.id][t2.male.id]++;
+                maleOpponents[t2.male.id][t1.male.id]++;
+                femaleOpponents[t1.female.id][t2.female.id]++;
+                femaleOpponents[t2.female.id][t1.female.id]++;
+            }
+
+            if (round.matches.length > 0) {
+                rounds.push(round);
+            }
+        }
+
+        // Handle any remaining unmatched teams
+        const remainingTeams = allTeams.filter(t => !usedTeamIds.has(t.id));
+        while (remainingTeams.length >= 2) {
+            const round = {
+                roundNumber: rounds.length + 1,
+                matches: [],
+                malesUsed: new Set(),
+                femalesUsed: new Set(),
+                hasAssignedMatches: false,
+                assignedBye: null,
+                byeTeam: null
+            };
+
+            // Try to pair remaining teams
+            const toRemove = [];
+            for (let i = 0; i < remainingTeams.length; i++) {
+                const t1 = remainingTeams[i];
+                if (round.malesUsed.has(t1.male.id) || round.femalesUsed.has(t1.female.id)) continue;
+
+                for (let j = i + 1; j < remainingTeams.length; j++) {
+                    const t2 = remainingTeams[j];
+                    if (round.malesUsed.has(t2.male.id) || round.femalesUsed.has(t2.female.id)) continue;
+                    if (t1.male.id === t2.male.id || t1.female.id === t2.female.id) continue;
+
+                    const match = {
+                        team1: {
+                            id: t1.id,
+                            name: t1.name,
+                            player1: t1.male,
+                            player2: t1.female,
+                            male: t1.male,
+                            female: t1.female
+                        },
+                        team2: {
+                            id: t2.id,
+                            name: t2.name,
+                            player1: t2.male,
+                            player2: t2.female,
+                            male: t2.male,
+                            female: t2.female
+                        },
+                        assignedRound: null
+                    };
+
+                    round.matches.push(match);
+                    round.malesUsed.add(t1.male.id);
+                    round.malesUsed.add(t2.male.id);
+                    round.femalesUsed.add(t1.female.id);
+                    round.femalesUsed.add(t2.female.id);
+                    toRemove.push(i, j);
+                    break;
+                }
+            }
+
+            // Remove matched teams
+            for (let i = toRemove.length - 1; i >= 0; i--) {
+                remainingTeams.splice(toRemove[i], 1);
+            }
+
+            if (round.matches.length > 0) {
+                rounds.push(round);
+            } else {
+                break;
+            }
+        }
+
+        // Convert malesUsed/femalesUsed to playersUsed for compatibility
+        rounds.forEach(round => {
+            round.playersUsed = new Set([...round.malesUsed, ...round.femalesUsed]);
+        });
 
         return rounds;
     }
@@ -850,11 +1266,18 @@ class PickleballRoundRobin {
 
     assignCourts() {
         const isRotating = this.tournamentType === 'rotating';
+        const isMixed = this.tournamentType === 'mixed';
 
-        if (isRotating) {
-            // For rotating partner, track by individual player
+        if (isRotating || isMixed) {
+            // For rotating/mixed partner, track by individual player
             const playerCourtCounts = {};
-            this.players.forEach(player => {
+
+            // Get the right player list based on mode
+            const allPlayers = isMixed
+                ? [...this.malePlayers, ...this.femalePlayers]
+                : this.players;
+
+            allPlayers.forEach(player => {
                 playerCourtCounts[player.id] = {};
                 for (let c = 1; c <= this.numCourts; c++) {
                     playerCourtCounts[player.id][c] = 0;
@@ -1091,6 +1514,10 @@ class PickleballRoundRobin {
             return this.calculatePlayerStandings();
         }
 
+        if (this.tournamentType === 'mixed') {
+            return this.calculateMixedStandings();
+        }
+
         // Fixed partner standings - by team
         const standings = {};
         this.teams.forEach(team => {
@@ -1233,8 +1660,109 @@ class PickleballRoundRobin {
         return standingsArray;
     }
 
+    calculateMixedStandings() {
+        // Mixed doubles standings - separate for males and females
+        const maleStandings = {};
+        const femaleStandings = {};
+
+        this.malePlayers.forEach(player => {
+            maleStandings[player.id] = {
+                player: player,
+                wins: 0,
+                losses: 0,
+                pointsFor: 0,
+                pointsAgainst: 0,
+                marginTotal: 0,
+                gamesPlayed: 0
+            };
+        });
+
+        this.femalePlayers.forEach(player => {
+            femaleStandings[player.id] = {
+                player: player,
+                wins: 0,
+                losses: 0,
+                pointsFor: 0,
+                pointsAgainst: 0,
+                marginTotal: 0,
+                gamesPlayed: 0
+            };
+        });
+
+        // Calculate stats from all matches with scores
+        this.schedule.forEach(round => {
+            round.matches.forEach(match => {
+                if (match.score1 !== null && match.score2 !== null) {
+                    // Team 1 players (male and female)
+                    const t1Male = maleStandings[match.team1.male.id];
+                    const t1Female = femaleStandings[match.team1.female.id];
+                    // Team 2 players (male and female)
+                    const t2Male = maleStandings[match.team2.male.id];
+                    const t2Female = femaleStandings[match.team2.female.id];
+
+                    // Update points for all 4 players
+                    [t1Male, t1Female].forEach(p => {
+                        p.pointsFor += match.score1;
+                        p.pointsAgainst += match.score2;
+                        p.gamesPlayed++;
+                    });
+                    [t2Male, t2Female].forEach(p => {
+                        p.pointsFor += match.score2;
+                        p.pointsAgainst += match.score1;
+                        p.gamesPlayed++;
+                    });
+
+                    if (match.score1 > match.score2) {
+                        // Team 1 wins
+                        [t1Male, t1Female].forEach(p => {
+                            p.wins++;
+                            p.marginTotal += (match.score1 - match.score2);
+                        });
+                        [t2Male, t2Female].forEach(p => {
+                            p.losses++;
+                            p.marginTotal += (match.score2 - match.score1);
+                        });
+                    } else if (match.score2 > match.score1) {
+                        // Team 2 wins
+                        [t2Male, t2Female].forEach(p => {
+                            p.wins++;
+                            p.marginTotal += (match.score2 - match.score1);
+                        });
+                        [t1Male, t1Female].forEach(p => {
+                            p.losses++;
+                            p.marginTotal += (match.score1 - match.score2);
+                        });
+                    }
+                    // Ties: no win/loss change
+                }
+            });
+        });
+
+        // Convert to arrays and calculate average margin
+        const sortStandings = (arr) => {
+            return arr.map(s => ({
+                ...s,
+                avgMargin: s.gamesPlayed > 0 ? s.marginTotal / s.gamesPlayed : 0
+            })).sort((a, b) => {
+                if (b.wins !== a.wins) return b.wins - a.wins;
+                return b.avgMargin - a.avgMargin;
+            });
+        };
+
+        return {
+            male: sortStandings(Object.values(maleStandings)),
+            female: sortStandings(Object.values(femaleStandings))
+        };
+    }
+
     renderStandings() {
         if (!this.scoringEnabled) return;
+
+        // Handle mixed doubles separately
+        if (this.tournamentType === 'mixed') {
+            this.renderMixedStandings();
+            return;
+        }
 
         const standings = this.calculateStandings();
         const completedMatches = this.schedule.reduce((sum, round) =>
@@ -1276,13 +1804,62 @@ class PickleballRoundRobin {
         `;
     }
 
+    renderMixedStandings() {
+        const standings = this.calculateMixedStandings();
+        const completedMatches = this.schedule.reduce((sum, round) =>
+            sum + round.matches.filter(m => m.score1 !== null && m.score2 !== null).length, 0
+        );
+        const totalMatches = this.schedule.reduce((sum, round) => sum + round.matches.length, 0);
+
+        const renderTable = (title, data, cssClass) => `
+            <div class="standings-group ${cssClass}">
+                <h4>${title}</h4>
+                <table class="standings-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Player</th>
+                            <th>W-L</th>
+                            <th>+/-</th>
+                            <th>PF</th>
+                            <th>PA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map((s, index) => `
+                            <tr class="${index === 0 && s.gamesPlayed > 0 ? 'leader' : ''}">
+                                <td class="rank">${index + 1}</td>
+                                <td class="team-name-cell">${s.player.name}</td>
+                                <td class="record">${s.wins}-${s.losses}</td>
+                                <td class="margin ${s.avgMargin > 0 ? 'positive' : s.avgMargin < 0 ? 'negative' : ''}">${s.avgMargin > 0 ? '+' : ''}${s.avgMargin.toFixed(1)}</td>
+                                <td>${s.pointsFor}</td>
+                                <td>${s.pointsAgainst}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        this.standingsSection.innerHTML = `
+            <h3>Standings</h3>
+            <p class="standings-progress">Matches completed: ${completedMatches} / ${totalMatches}</p>
+            <div class="mixed-standings">
+                ${renderTable('Male Standings', standings.male, 'male-standings')}
+                ${renderTable('Female Standings', standings.female, 'female-standings')}
+            </div>
+            <p class="standings-note">Players are ranked by record. Average margin of victory is used as the tiebreaker.</p>
+        `;
+    }
+
     // ==================== RENDERING ====================
 
     renderSchedule() {
         const isRotating = this.tournamentType === 'rotating';
-        const n = isRotating ? this.players.length : this.teams.length;
-        const totalRounds = isRotating ? this.schedule.length : (n % 2 === 0 ? n - 1 : n);
-        const hasOddTeams = !isRotating && n % 2 !== 0;
+        const isMixed = this.tournamentType === 'mixed';
+        const n = isMixed ? this.malePlayers.length : (isRotating ? this.players.length : this.teams.length);
+        const totalRounds = (isRotating || isMixed) ? this.schedule.length : (n % 2 === 0 ? n - 1 : n);
+        const hasOddTeams = !isRotating && !isMixed && n % 2 !== 0;
 
         this.scheduleOutput.innerHTML = this.schedule.map((round, roundIndex) => `
             <div class="round ${round.hasAssignedMatches || round.assignedBye ? 'has-assignments' : ''}">
@@ -1305,7 +1882,7 @@ class PickleballRoundRobin {
                 <div class="matches">
                     ${round.matches.map((match, matchIndex) => `
                         <div class="match ${match.assignedRound !== null ? 'match-assigned' : ''} ${this.scoringEnabled && match.score1 !== null && match.score2 !== null ? 'match-scored' : ''}">
-                            ${!isRotating ? `
+                            ${!isRotating && !isMixed ? `
                                 <div class="round-selector">
                                     <label>Round:</label>
                                     <select onchange="app.assignMatchToRound(${roundIndex}, ${matchIndex}, this.value)"
@@ -1341,7 +1918,7 @@ class PickleballRoundRobin {
             </div>
         `).join('');
 
-        if (!isRotating) {
+        if (!isRotating && !isMixed) {
             this.updateRegenerateButton();
         } else {
             this.regenerateBtn.disabled = true;
@@ -1351,8 +1928,76 @@ class PickleballRoundRobin {
     renderSummary() {
         const totalMatches = this.schedule.reduce((sum, round) => sum + round.matches.length, 0);
         const isRotating = this.tournamentType === 'rotating';
+        const isMixed = this.tournamentType === 'mixed';
 
-        if (isRotating) {
+        if (isMixed) {
+            // Mixed doubles summary - count matches per player, separated by gender
+            const maleMatchCounts = {};
+            const femaleMatchCounts = {};
+            this.malePlayers.forEach(p => { maleMatchCounts[p.id] = 0; });
+            this.femalePlayers.forEach(p => { femaleMatchCounts[p.id] = 0; });
+
+            this.schedule.forEach(round => {
+                round.matches.forEach(match => {
+                    maleMatchCounts[match.team1.male.id]++;
+                    maleMatchCounts[match.team2.male.id]++;
+                    femaleMatchCounts[match.team1.female.id]++;
+                    femaleMatchCounts[match.team2.female.id]++;
+                });
+            });
+
+            this.summarySection.innerHTML = `
+                <h3>Tournament Summary</h3>
+                <div class="mixed-summary">
+                    <div class="summary-column">
+                        <h4>Male Players</h4>
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Matches</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.malePlayers.map(player => `
+                                    <tr>
+                                        <td><strong>${player.name}</strong></td>
+                                        <td>${maleMatchCounts[player.id]}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="summary-column">
+                        <h4>Female Players</h4>
+                        <table class="summary-table">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Matches</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${this.femalePlayers.map(player => `
+                                    <tr>
+                                        <td><strong>${player.name}</strong></td>
+                                        <td>${femaleMatchCounts[player.id]}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <p style="margin-top: 16px; color: #666;">
+                    <strong>Total Rounds:</strong> ${this.schedule.length} |
+                    <strong>Total Matches:</strong> ${totalMatches} |
+                    <strong>Courts Used:</strong> ${this.numCourts}
+                </p>
+                <p style="margin-top: 8px; color: #888; font-size: 0.9rem;">
+                    Each male partners with each female once.
+                </p>
+            `;
+        } else if (isRotating) {
             // Rotating partner summary - count matches per player
             const matchCounts = {};
             this.players.forEach(p => { matchCounts[p.id] = 0; });
@@ -1441,6 +2086,8 @@ class PickleballRoundRobin {
         try {
             localStorage.setItem('pickleballTeams', JSON.stringify(this.teams));
             localStorage.setItem('pickleballPlayers', JSON.stringify(this.players));
+            localStorage.setItem('pickleballMalePlayers', JSON.stringify(this.malePlayers));
+            localStorage.setItem('pickleballFemalePlayers', JSON.stringify(this.femalePlayers));
         } catch (e) {
             // Storage not available
         }
@@ -1457,6 +2104,16 @@ class PickleballRoundRobin {
             if (savedPlayers) {
                 this.players = JSON.parse(savedPlayers);
                 this.renderPlayers();
+            }
+            const savedMalePlayers = localStorage.getItem('pickleballMalePlayers');
+            if (savedMalePlayers) {
+                this.malePlayers = JSON.parse(savedMalePlayers);
+                this.renderMalePlayers();
+            }
+            const savedFemalePlayers = localStorage.getItem('pickleballFemalePlayers');
+            if (savedFemalePlayers) {
+                this.femalePlayers = JSON.parse(savedFemalePlayers);
+                this.renderFemalePlayers();
             }
         } catch (e) {
             // Storage not available or invalid data

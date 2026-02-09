@@ -740,4 +740,117 @@ footer {
     .schedule-controls .btn {
         width: 100%;
     }
+
+    .mixed-columns {
+        flex-direction: column;
+    }
+
+    .mixed-column {
+        min-width: 100%;
+    }
+
+    .mixed-standings,
+    .mixed-summary {
+        flex-direction: column;
+    }
+}
+
+/* Mixed Doubles Styles */
+.mixed-columns {
+    display: flex;
+    gap: 24px;
+}
+
+.mixed-column {
+    flex: 1;
+    min-width: 250px;
+}
+
+.mixed-column label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #444;
+}
+
+.mixed-column h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1rem;
+}
+
+/* Gender-specific tag colors */
+.male-tag {
+    background: linear-gradient(135deg, #2196F3 0%, #1565C0 100%) !important;
+}
+
+.female-tag {
+    background: linear-gradient(135deg, #E91E63 0%, #C2185B 100%) !important;
+}
+
+/* Mixed Standings */
+.mixed-standings {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.standings-group {
+    flex: 1;
+    min-width: 300px;
+    overflow-x: auto;
+}
+
+.standings-group h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1.1rem;
+}
+
+.male-standings h4 {
+    color: #1565C0;
+}
+
+.female-standings h4 {
+    color: #C2185B;
+}
+
+/* Compact table styles for mixed standings */
+.mixed-standings .standings-table th,
+.mixed-standings .standings-table td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.mixed-standings .standings-table th {
+    font-size: 0.8rem;
+}
+
+.mixed-standings .standings-table .rank {
+    width: 40px;
+}
+
+.mixed-standings .standings-table .team-name-cell {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mixed Summary */
+.mixed-summary {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.summary-column {
+    flex: 1;
+    min-width: 250px;
+}
+
+.summary-column h4 {
+    color: #333;
+    margin-bottom: 12px;
+    font-size: 1rem;
 }
